@@ -8,7 +8,7 @@ from ai_traineree.types import ActionType, StateType, RewardType, DoneType
 from typing import Any, Dict, Tuple
 
 
-SUPPORTED_MODELS = ['dqn', 'ppo', 'ddpg']
+SUPPORTED_MODELS = ['dqn', 'ppo', 'ddpg', 'sac', 'd3pg', 'd4pg', 'rainbow', 'td3']
 
 
 class RemoteAgent(AgentBase):
