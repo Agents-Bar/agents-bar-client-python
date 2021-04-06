@@ -4,13 +4,13 @@ import requests
 import os
 
 from tenacity import retry, stop_after_attempt, after_log
-from typing import Any, Dict, List, Tuple, Optional, Union
+from typing import Dict, List, Tuple, Optional, Union
 from .utils import to_list
 
 StateType = List[float]
 ActionType = Union[int, List[Union[int, float]]]
 
-SUPPORTED_MODELS = ['dqn', 'ppo', 'ddpg', 'rainbow']
+SUPPORTED_MODELS = ['dqn', 'ppo', 'ddpg', 'rainbow']  #: Supported models
 
 global_logger = logging.getLogger("Retry")
 
@@ -32,7 +32,7 @@ class RemoteAgent:
             action_size (int): Dimensionality of the action space.
                 In case of discrete space, that's a single dimensions with potential values.
                 In case of continious space, that's a number of dimensions in uniform [0, 1] distribution.
-            agent_model (str): Name of the model type. Check `ai_traineree_client.SUPPORTED_MODELS`
+            agent_model (str): Name of the model type. Check :py:data:`ai_traineree_client.SUPPORTED_MODELS`
                 for accepted values.
             description (str): Optional. Description for the model, if creating a new one.
 
@@ -109,7 +109,7 @@ class RemoteAgent:
 
         *Note* that it can take a few seconds to create a new agent. In such a case,
         any calls to the agent might fail. To make sure that your program doesn't fail
-        either use `ai_traineree_client.wait_until_agent_exists` or manually sleep for
+        either use :py:func:`ai_traineree_client.wait_until_agent_exists` or manually sleep for
         a few seconds.
 
         """
