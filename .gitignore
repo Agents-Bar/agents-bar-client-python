@@ -2,3 +2,6 @@
 __pycachce__/
 *.pyc
 
+ai_traineree_client.egg-info/
+build/
+dist/

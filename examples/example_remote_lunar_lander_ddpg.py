@@ -57,53 +57,51 @@ def interact_episode(env: gym.Env, agent: RemoteAgent, eps: float=0, max_iterati
     return score, iterations
 
 
-reward_goal: float=100.0
-max_episodes: int=2000
-eps_start: float=1.0
-eps_end: float=0.01
-eps_decay: float=0.995
-window_len: int=100
+if __name__ == "__main__":
 
-env_name = 'LunarLanderContinuous-v2'
-env = gym.make(env_name)
+    reward_goal: float=100.0
+    max_episodes: int=200
+    eps_start: float=0.98
+    eps_end: float=0.01
+    eps_decay: float=0.995
+    window_len: int=100
 
-state_size, action_size = get_state_action_size(env)
+    env_name = 'LunarLanderContinuous-v2'
+    env = gym.make(env_name)
 
-agent = RemoteAgent(
-    state_size=state_size, action_size=action_size,
-    agent_model="ddpg", agent_name="ddpg_test", description="Description of the DDPG agent",
-)
+    state_size, action_size = get_state_action_size(env)
 
-# If the agent hasn't been created already, create a new one
-if not agent.exists:
-    agent.create_agent()
-    wait_until_agent_exists(agent)
+    agent = RemoteAgent(
+        state_size=state_size, action_size=action_size,
+        agent_model="ddpg", agent_name="DDPG_test", description="Description of the DDPG agent",
+    )
 
+    # If the agent hasn't been created already, create a new one
+    if not agent.exists:
+        agent.create_agent()
+        wait_until_agent_exists(agent)
 
-episode = 0
-epsilon = eps_start
-mean_scores = []
-epsilons = []
-scores_window = deque(maxlen=window_len)
-all_scores = []
+    episode = 0
+    epsilon = eps_start
+    scores_window = deque(maxlen=window_len)
+    mean_score = 0
+    all_scores = []
 
-while (episode < max_episodes):
-    episode += 1
-    print(f"Episode: {episode:03}\t", end="")
-    score, iterations = interact_episode(env, agent, epsilon)
-    print(f"Score: {score}\tIterations: {iterations}")
+    while (episode < max_episodes):
+        episode += 1
+        print(f"Episode: {episode:03}\t", end="")
+        score, iterations = interact_episode(env, agent, epsilon)
 
-    # Keep information for presentation
-    scores_window.append(score)
-    all_scores.append(score)
-    mean_scores.append(sum(scores_window) / len(scores_window))
-    epsilons.append(epsilon)
+        # Keep information for presentation
+        scores_window.append(score)
+        all_scores.append(score)
+        mean_score = sum(scores_window) / len(scores_window)
+        print(f"Iterations: {iterations}\tScore: {score}\tMean score: {mean_score}")
 
-    # Update greedy-epislon value
-    epsilon = max(eps_end, eps_decay * epsilon)
+        # Update greedy-epislon value
+        epsilon = max(eps_end, eps_decay * epsilon)
 
-    # Stop learning when agent reaches its goal
-    if mean_scores[-1] >= reward_goal and len(scores_window) == window_len:
-        print(f'Environment solved after {episode} episodes!\tAverage Score: {mean_scores[-1]:.2f}')
-        break
-
+        # Stop learning when agent reaches its goal
+        if mean_score >= reward_goal and len(scores_window) == window_len:
+            print(f'Environment solved after {episode} episodes!\tAverage Score: {mean_score:.2f}')
+            break

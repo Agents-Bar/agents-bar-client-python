@@ -47,10 +47,10 @@ class RemoteAgent:
         super().__init__(**kwargs)
 
         self.url = self.__parse_url(kwargs)
-        access_token = kwargs.pop("access_token", None)
-        if access_token is None:
-            access_token = self.__login(username=kwargs.pop("username", None), password=kwargs.pop("password", None))
-        self.__access_token = access_token
+        # Pop credentials so that they aren't in the app beyond this point
+        self.__access_token = self.get_access_token(
+            access_token=kwargs.pop("access_token", None), username=kwargs.pop("username", None), password=kwargs.pop("password", None)
+        )
         self._headers = {"Authorization": f"Bearer {self.__access_token}", "accept": "application/json"}
 
         self._config: Dict = {}
@@ -74,17 +74,30 @@ class RemoteAgent:
         if url[:4].lower() != "http":
             url = "https://" + url
         return url + "/api/v1"
+    
+    def get_access_token(self, username=None, password=None, access_token=None) -> str:
+        """Retrives access token.
+
+        """
+        access_token = access_token if access_token is not None else os.environ.get('AGENTS_BAR_ACCESS_TOKEN')
+        if access_token is None:
+            access_token = self.__login(username=username, password=password)
+        return access_token
 
     def __login(self, username: Optional[str]=None, password: Optional[str]=None):
-        username = username if username is not None else os.environ['AGENTS_BAR_USER']
-        password = password if password is not None else os.environ['AGENTS_BAR_PASS']
+        username = username if username is not None else os.environ.get('AGENTS_BAR_USER')
+        password = password if password is not None else os.environ.get('AGENTS_BAR_PASS')
+        if username is None or password is None:
+            raise ValueError("No credentials provided for logging in. Please pass either 'access_token' or "
+                "('username' and 'password'). These credentials should be related to your Agents Bar account."
+            )
         data = dict(username=username, password=password)
         response = requests.post(f"{self.url}/login/access-token", data=data)
         if response.status_code >= 300:
             self.logger.error(response.text)
             raise ValueError(
                 f"Receieved an error while trying to authenticate as username='{username}'." \
-                "Please double check your credentials. Error: {response.text}"
+                f"Please double check your credentials. Error: {response.text}"
             )
         return response.json()['access_token']
 
