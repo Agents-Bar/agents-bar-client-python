@@ -1,7 +1,8 @@
 import time
+from typing import List
 
 
-def wait_until_agent_exists(agent, max_seconds: int=20, verbose: bool=True) -> bool:
+def wait_until_agent_exists(agent, max_seconds: int = 20, verbose: bool = True) -> bool:
     """
     Waits until the agent is created but no longer than `max_seconds`.
 
@@ -27,11 +28,27 @@ def wait_until_agent_exists(agent, max_seconds: int=20, verbose: bool=True) -> b
     return True
 
 
-def to_list(x):
+def to_list(x: object) -> List:
+    """Convert to a list.
+
+    Parameters:
+        x (object): Something that would make sense converting to a list.
+
+    Returns:
+        Tries to create a list from provided object.
+
+    Examples:
+        >>> to_list(1)
+        [1]
+        >>> to_list([1,2])
+        [1, 2]
+        >>> to_list( (1.2, 3., 0.) )
+        [1.2, 3., 0.]
+
+    """
     if isinstance(x, list):
         return x
-    elif isinstance(x, (int, float)):
+    if isinstance(x, (int, float)):
         return [x]
-    else:
-        # Just hoping...
-        return list(x)
+    # Just hoping...
+    return list(x)

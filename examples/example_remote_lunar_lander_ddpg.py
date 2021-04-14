@@ -5,7 +5,7 @@ import gym
 from ai_traineree_client import RemoteAgent, wait_until_agent_exists
 
 
-def get_state_action_size(env):
+def get_state_action_size(env: gym.Env):
     def __determine_action_size(action_space):
         if "Discrete" in str(type(action_space)):
             return action_space.n
@@ -17,7 +17,7 @@ def get_state_action_size(env):
     return state_size, action_size
 
 
-def interact_episode(env: gym.Env, agent: RemoteAgent, eps: float=0, max_iterations: int=10000) -> Tuple[float, int]:
+def interact_episode(env: gym.Env, agent: RemoteAgent, eps: float = 0, max_iterations: int = 10000) -> Tuple[float, int]:
     """Single episode interaction.
 
     Interacts with the episode until reaching a terminal state.
@@ -30,7 +30,7 @@ def interact_episode(env: gym.Env, agent: RemoteAgent, eps: float=0, max_iterati
             for interacting with the environment.
     
     Returns:
-        Tuple of (score, iterations) obtained in given episode. Score is cummulative score,
+        Tuple of (score, iterations) obtained in given episode. Score is cumulative score,
         i.e. sum of all rewards, and the iterations is the number of iterations taken in the episode.
 
     """
@@ -39,7 +39,7 @@ def interact_episode(env: gym.Env, agent: RemoteAgent, eps: float=0, max_iterati
     iterations = 0
     done = False
 
-    while(iterations < max_iterations and not done):
+    while iterations < max_iterations and not done:
         iterations += 1
 
         action = agent.act(state, eps)
@@ -87,7 +87,7 @@ if __name__ == "__main__":
     mean_score = 0
     all_scores = []
 
-    while (episode < max_episodes):
+    while episode < max_episodes:
         episode += 1
         print(f"Episode: {episode:03}\t", end="")
         score, iterations = interact_episode(env, agent, epsilon)
@@ -98,7 +98,7 @@ if __name__ == "__main__":
         mean_score = sum(scores_window) / len(scores_window)
         print(f"Iterations: {iterations}\tScore: {score}\tMean score: {mean_score}")
 
-        # Update greedy-epislon value
+        # Update greedy-epsilon value
         epsilon = max(eps_end, eps_decay * epsilon)
 
         # Stop learning when agent reaches its goal
