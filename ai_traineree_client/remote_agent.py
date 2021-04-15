@@ -93,7 +93,7 @@ class RemoteAgent:
         if response.status_code >= 300:
             self.logger.error(response.text)
             raise ValueError(
-                f"Received an error while trying to authenticate as username='{username}'."
+                f"Received an error while trying to authenticate as username='{username}'. "
                 f"Please double check your credentials. Error: {response.text}"
             )
         return response.json()['access_token']
@@ -175,7 +175,7 @@ class RemoteAgent:
         return {k: make_str_or_number(v) for (k, v) in self._config.items()}
 
     @retry(stop=stop_after_attempt(3), after=after_log(global_logger, logging.INFO))
-    def act(self, state, noise: float = 0) -> Union[int, float, List[int, float]]:
+    def act(self, state, noise: float = 0) -> ActionType:
         """Asks for action based on provided state.
 
         Parameters:

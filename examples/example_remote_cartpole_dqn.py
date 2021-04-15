@@ -30,7 +30,7 @@ def interact_episode(env: gym.Env, agent: RemoteAgent, eps: float = 0, max_itera
         eps (float): Default 0. Epsilon value in the epsilon-greedy paradigm.
         max_iterations (int): Default 10000. Maximum number of iterations to take before calling quits
             for interacting with the environment.
-    
+
     Returns:
         Tuple of (score, iterations) obtained in given episode. Score is cumulative score,
         i.e. sum of all rewards, and the iterations is the number of iterations taken in the episode.
@@ -63,10 +63,10 @@ if __name__ == "__main__":
 
     reward_goal: float = 100.0
     max_episodes: int = 200
-    eps_start: float=0.8
-    eps_end: float=0.01
-    eps_decay: float=0.99
-    window_len: int=100
+    eps_start: float = 0.8
+    eps_end: float = 0.01
+    eps_decay: float = 0.99
+    window_len: int = 100
 
     env_name = 'CartPole-v1'
     env = gym.make(env_name)
@@ -76,12 +76,14 @@ if __name__ == "__main__":
     agent = RemoteAgent(
         state_size=state_size, action_size=action_size,
         agent_model="dqn", agent_name="DQN_test", description="Description of the DQN agent",
+        #url="http://localhost",
     )
 
     # If the agent hasn't been created already, create a new one
     if not agent.exists:
         agent.create_agent()
-        wait_until_agent_exists(agent)
+        time.sleep(8)
+        # wait_until_agent_exists(agent)
 
     episode = 0
     epsilon = eps_start
