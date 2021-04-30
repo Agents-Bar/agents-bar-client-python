@@ -1,3 +1,4 @@
+import dataclasses
 import json
 import logging
 import os
@@ -5,7 +6,9 @@ from typing import Dict, List, Tuple, Optional, Union
 
 import requests
 from tenacity import retry, stop_after_attempt, after_log
+from .types import EncodedAgentState
 from .utils import to_list
+
 
 StateType = List[float]
 ActionType = Union[int, List[Union[int, float]]]
@@ -212,6 +215,40 @@ class RemoteAgent:
         self._state_size = agent['config']['state_size']
         self._action_size = agent['config']['action_size']
         self._agent_model = agent['model']
+
+    @retry(stop=stop_after_attempt(3), reraise=True)
+    def get_state(self) -> EncodedAgentState:
+        """Gets agents state in an encoded snapshot form.
+
+        *Note* that this API has a heavy rate limit.
+
+        Returns:
+            Snapshot with config, buffer and network states being encoded.
+
+        """
+        response = requests.get(f"{self.url}/snapshot/{self.agent_name}", headers=self._headers)
+        if not response.ok:
+            response.raise_for_status()
+        state = response.json()
+        return EncodedAgentState(**state)
+    
+    def upload_state(self, state: EncodedAgentState) -> bool:
+        """Updates remote agent with provided state.
+
+        Parameters:
+            state: Agent's state with encoded values for buffer, config and network states.
+
+        Returns:
+            Bool confirmation whether update was successful.
+
+        """
+        j_state = dataclasses.asdict(state)
+        response = requests.post(f"{self.url}/snapshot/{self.agent_name}", json=j_state, headers=self._headers)
+        if not response.ok:
+            response.raise_for_status()  # Raises
+            return False  # Doesn't reach
+        return True
+
     @retry(stop=stop_after_attempt(3), after=after_log(global_logger, logging.INFO))
     def act(self, state, noise: float = 0) -> ActionType:
         """Asks for action based on provided state.
