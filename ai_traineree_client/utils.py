@@ -2,6 +2,33 @@ import time
 from typing import List
 
 
+def wait_until_agent_is_active(agent, max_seconds: int = 20, verbose: bool = True) -> bool:
+    """
+    Waits until the agent is is_active but no longer than `max_seconds`.
+
+    Parameters:
+        agent (RemoteAgent): Remote agent instance.
+        max_seconds (int): Maximum seconds allowed to wait.
+        verbose:
+
+    Returns:
+        Boolean value, whether agent is_active, i.e. exists and is ready to respond.
+    
+    """
+    start_time = time.time()
+    elapsed_time = 0
+
+    while not agent.is_active:
+        if verbose and elapsed_time:
+            print(f"Waited {elapsed_time:0.2f} seconds. Waiting some more...")
+        time.sleep(0.5)
+        elapsed_time = time.time() - start_time
+        if elapsed_time > max_seconds:
+            return False
+
+    return True
+
+
 def wait_until_agent_exists(agent, max_seconds: int = 20, verbose: bool = True) -> bool:
     """
     Waits until the agent is created but no longer than `max_seconds`.

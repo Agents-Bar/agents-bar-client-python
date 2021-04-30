@@ -149,6 +149,15 @@ class RemoteAgent:
         """Whether the agent service exists and is accessible"""
         response = requests.get(f"{self.url}/agents/{self.agent_name}", headers=self._headers)
         return response.status_code == 200
+    
+    @property
+    def is_active(self):
+        response = requests.get(f"{self.url}/agents/{self.agent_name}", headers=self._headers)
+        if response.status_code != 200:
+            return False
+        agent = response.json()
+        return agent['is_active']
+
 
     @staticmethod
     def __validate_agent_model(model):
