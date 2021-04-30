@@ -20,19 +20,11 @@ class RemoteAgent:
     default_url = "https://agents.bar"
     logger = logging.getLogger("RemoteAgent")
 
-    def __init__(
-            self, state_size: int, action_size: int,
-            agent_model: str, agent_name: str, description: str = "", **kwargs):
+    def __init__(self, agent_name: str, description: str = "", **kwargs):
         """
         An instance of the agent in the Agents Bar.
 
         Parameters:
-            state_size (int): Dimensionality of the state space.
-            action_size (int): Dimensionality of the action space.
-                In case of discrete space, that's a single dimensions with potential values.
-                In case of continuous space, that's a number of dimensions in uniform [0, 1] distribution.
-            agent_model (str): Name of the model type. Check :py:data:`ai_traineree_client.SUPPORTED_MODELS`
-                for accepted values.
             description (str): Optional. Description for the model, if creating a new one.
 
         Keyword arguments:
@@ -52,18 +44,33 @@ class RemoteAgent:
 
         self._config: Dict = {}
         self._config.update(**kwargs)
-        self.state_size: int = state_size
-        self.action_size: int = action_size
-        self._config['state_size'] = state_size
-        self._config['action_size'] = action_size
-        self.in_features: Tuple[int] = (self.state_size,)
+
+        self._state_size: Optional[int] = kwargs.get('state_size', None)
+        self._action_size: Optional[int] = kwargs.get('action_size', None)
+        self._agent_model: Optional[str] = kwargs.get('agent_model', None)
+        # self.in_features: Tuple[int] = (self.state_size,)
         self.loss: Dict[str, float] = {}
 
-        self.__validate_agent_model(agent_model)
-        self.agent_model = agent_model
         self.agent_name = agent_name
         self.description = description
-        self._discrete = self.agent_model.lower() in ('dqn', 'rainbow')
+
+    @property
+    def state_size(self):
+        if self._state_size is None:
+            self.sync()
+        return self._state_size
+
+    @property
+    def action_size(self):
+        if self._action_size is None:
+            self.sync()
+        return self._action_size
+
+    @property
+    def agent_model(self):
+        if self._agent_model is None:
+            self.sync()
+        return self._agent_model
 
     @staticmethod
     def __parse_url(kwargs) -> str:
@@ -86,8 +93,8 @@ class RemoteAgent:
         password = password if password is not None else os.environ.get('AGENTS_BAR_PASS')
         if username is None or password is None:
             raise ValueError("No credentials provided for logging in. Please pass either 'access_token' or "
-                             "('username' and 'password'). These credentials should be related to your Agents Bar account."
-                             )
+                             "('username' and 'password'). These credentials should be related to your Agents Bar account.")
+
         data = dict(username=username, password=password)
         response = requests.post(f"{self.url}/login/access-token", data=data)
         if response.status_code >= 300:
@@ -98,7 +105,7 @@ class RemoteAgent:
             )
         return response.json()['access_token']
 
-    def create_agent(self):
+    def create_agent(self, state_size: int, action_size: int, agent_model: str) -> Dict:
         """Creates a new agent in the service.
 
         Uses provided information on RemoteAgent instantiation to create a new agent.
@@ -109,7 +116,23 @@ class RemoteAgent:
         either use :py:func:`ai_traineree_client.wait_until_agent_exists` or manually sleep for
         a few seconds.
 
+        Parameters:
+            state_size (int): Dimensionality of the state space.
+            action_size (int): Dimensionality of the action space.
+                In case of discrete space, that's a single dimensions with potential values.
+                In case of continuous space, that's a number of dimensions in uniform [0, 1] distribution.
+            agent_model (str): Name of the model type. Check :py:data:`ai_traineree_client.SUPPORTED_MODELS`
+                for accepted values.
+
+        Returns:
+            Details of created agent.
+
         """
+        self.__validate_agent_model(agent_model)
+        self.agent_model = agent_model
+        self._discrete = self.agent_model.lower() in ('dqn', 'rainbow')
+        self._config['state_size'] = state_size
+        self._config['action_size'] = action_size
         self.logger.debug("Creating an agent (name=%s, model=%s)", self.agent_name, self.agent_model)
         payload = dict(name=self.agent_name, model=self.agent_model, description=self.description, config=self._config)
         response = requests.post(f"{self.url}/agents/", data=json.dumps(payload), headers=self._headers)
@@ -141,33 +164,26 @@ class RemoteAgent:
         response = requests.delete(f"{self.url}/agents/{agent_name}", headers=self._headers)
         if response.status_code >= 300:
             raise RuntimeError(f"Error while deleting the agent '{agent_name}'. Message from server: {response.text}")
-
         return True
 
     @property
     def exists(self):
         """Whether the agent service exists and is accessible"""
         response = requests.get(f"{self.url}/agents/{self.agent_name}", headers=self._headers)
-        return response.status_code == 200
+        return response.ok
     
     @property
     def is_active(self):
         response = requests.get(f"{self.url}/agents/{self.agent_name}", headers=self._headers)
-        if response.status_code != 200:
-            return False
+        if not response.ok:
+            response.raise_for_status()
         agent = response.json()
         return agent['is_active']
-
 
     @staticmethod
     def __validate_agent_model(model):
         if model.lower() not in SUPPORTED_MODELS:
             raise ValueError(f"Model '{model}' isn't currently supported. Please select one from {SUPPORTED_MODELS}")
-
-    def info(self):
-        """Gets agents meta-data from sever."""
-        response = requests.get(f"{self.url}/agents/{self.agent_name}", headers=self._headers)
-        return response.json()
 
     @property
     def hparams(self) -> Dict[str, Union[str, float, int]]:
@@ -183,6 +199,19 @@ class RemoteAgent:
 
         return {k: make_str_or_number(v) for (k, v) in self._config.items()}
 
+    def info(self):
+        """Gets agents meta-data from sever."""
+        response = requests.get(f"{self.url}/agents/{self.agent_name}", headers=self._headers)
+        return response.json()
+
+    def sync(self) -> None:
+        """Synchronizes local information with the one stored in Agents Bar.
+        """
+        agent = self.info()
+        self._config.update(agent['config'])
+        self._state_size = agent['config']['state_size']
+        self._action_size = agent['config']['action_size']
+        self._agent_model = agent['model']
     @retry(stop=stop_after_attempt(3), after=after_log(global_logger, logging.INFO))
     def act(self, state, noise: float = 0) -> ActionType:
         """Asks for action based on provided state.
@@ -198,19 +227,18 @@ class RemoteAgent:
 
         """
         data = json.dumps(state)
-        response = requests.post(f"{self.url}/agents/{self.agent_name}/act?noise={noise}", data=data,
-                                 headers=self._headers)
-        if response.status_code >= 400:
-            raise RuntimeError(response.text)
-        response_json = response.json()
-        self.logger.debug("Response: %s", response.text)
-        action = response_json['action']
+        response = requests.post(f"{self.url}/agents/{self.agent_name}/act?noise={noise}",
+                                 data=data, headers=self._headers)
+        if not response.ok:
+            response.raise_for_status()  # Raises http
+
+        action = response.json()['action']
         if self._discrete:
             return int(action[0])
         return action
 
     @retry(stop=stop_after_attempt(10), after=after_log(global_logger, logging.INFO))
-    def step(self, state: StateType, action: ActionType, reward: float, next_state: StateType, done: bool):
+    def step(self, state: StateType, action: ActionType, reward: float, next_state: StateType, done: bool) -> bool:
         """Providing information from taking a step in environment.
 
         *Note* that all values have to be python plain values, like ints, floats, lists...
@@ -225,11 +253,14 @@ class RemoteAgent:
 
         """
         step_data = {
-            "state": to_list(state), "action": to_list(action), "reward": reward, "next_state": to_list(next_state),
-            "done": done
+            "state": to_list(state), "next_state": to_list(next_state),
+            "action": to_list(action), "reward": reward, "done": done,
         }
         data = {"step_data": step_data}
 
-        response = requests.post(f"{self.url}/agents/{self.agent_name}/step", data=json.dumps(data),
-                                 headers=self._headers)
-        self.logger.debug("Received: %s", response.text)
+        response = requests.post(f"{self.url}/agents/{self.agent_name}/step",
+                                 data=json.dumps(data), headers=self._headers)
+        if not response.ok:
+            response.raise_for_status()  # Raises http
+            return False
+        return True
