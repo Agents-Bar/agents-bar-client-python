@@ -226,7 +226,7 @@ class RemoteAgent:
             Snapshot with config, buffer and network states being encoded.
 
         """
-        response = requests.get(f"{self.url}/snapshot/{self.agent_name}", headers=self._headers)
+        response = requests.get(f"{self.url}/snapshots/{self.agent_name}", headers=self._headers)
         if not response.ok:
             response.raise_for_status()
         state = response.json()
@@ -243,7 +243,7 @@ class RemoteAgent:
 
         """
         j_state = dataclasses.asdict(state)
-        response = requests.post(f"{self.url}/snapshot/{self.agent_name}", json=j_state, headers=self._headers)
+        response = requests.post(f"{self.url}/snapshots/{self.agent_name}", json=j_state, headers=self._headers)
         if not response.ok:
             response.raise_for_status()  # Raises
             return False  # Doesn't reach
