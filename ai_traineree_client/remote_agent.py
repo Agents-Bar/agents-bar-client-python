@@ -2,20 +2,20 @@ import dataclasses
 import json
 import logging
 import os
-from typing import Dict, List, Tuple, Optional, Union
+from typing import Dict, List, Optional, Union
 
 import requests
-from tenacity import retry, stop_after_attempt, after_log
+from tenacity import after_log, retry, stop_after_attempt
+
 from .types import EncodedAgentState
 from .utils import to_list
-
 
 StateType = List[float]
 ActionType = Union[int, List[Union[int, float]]]
 
 SUPPORTED_MODELS = ['dqn', 'ppo', 'ddpg', 'rainbow']  #: Supported models
 
-global_logger = logging.getLogger("Retry")
+global_logger = logging.getLogger("Global")
 
 
 class RemoteAgent:
@@ -48,6 +48,7 @@ class RemoteAgent:
         self._config: Dict = {}
         self._config.update(**kwargs)
 
+        self._discrete: Optional[bool] = None
         self._state_size: Optional[int] = kwargs.get('state_size', None)
         self._action_size: Optional[int] = kwargs.get('action_size', None)
         self._agent_model: Optional[str] = kwargs.get('agent_model', None)
@@ -133,7 +134,6 @@ class RemoteAgent:
         """
         self.__validate_agent_model(agent_model)
         self.agent_model = agent_model
-        self._discrete = self.agent_model.lower() in ('dqn', 'rainbow')
         self._config['state_size'] = state_size
         self._config['action_size'] = action_size
         self.logger.debug("Creating an agent (name=%s, model=%s)", self.agent_name, self.agent_model)
@@ -182,6 +182,12 @@ class RemoteAgent:
             response.raise_for_status()
         agent = response.json()
         return agent['is_active']
+
+    @property
+    def discrete(self):
+        if self._discrete is None:
+            self._discrete = self.agent_model.lower() in ("dqn", 'rainbow')
+        return self._discrete
 
     @staticmethod
     def __validate_agent_model(model):
@@ -264,13 +270,13 @@ class RemoteAgent:
 
         """
         data = json.dumps(state)
-        response = requests.post(f"{self.url}/agents/{self.agent_name}/act?noise={noise}",
-                                 data=data, headers=self._headers)
+        response = requests.post(f"{self.url}/agents/{self.agent_name}/act",
+                                 params={"noise": noise}, data=data, headers=self._headers)
         if not response.ok:
             response.raise_for_status()  # Raises http
 
         action = response.json()['action']
-        if self._discrete:
+        if self.discrete:
             return int(action[0])
         return action
 
