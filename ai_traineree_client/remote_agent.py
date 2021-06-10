@@ -2,7 +2,7 @@ import dataclasses
 import json
 import logging
 import os
-from typing import Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 import requests
 from tenacity import after_log, retry, stop_after_attempt
@@ -78,7 +78,7 @@ class RemoteAgent:
 
     @staticmethod
     def __parse_url(kwargs) -> str:
-        url = kwargs.get("url", RemoteAgent.default_url)
+        url = kwargs.pop("url", RemoteAgent.default_url)
         if url[:4].lower() != "http":
             url = "https://" + url
         return url + "/api/v1"
@@ -109,7 +109,7 @@ class RemoteAgent:
             )
         return response.json()['access_token']
 
-    def create_agent(self, state_size: int, action_size: int, agent_model: str) -> Dict:
+    def create_agent(self, state_size: int, action_size: int, agent_model: str, active: bool = True) -> Dict:
         """Creates a new agent in the service.
 
         Uses provided information on RemoteAgent instantiation to create a new agent.
@@ -127,17 +127,24 @@ class RemoteAgent:
                 In case of continuous space, that's a number of dimensions in uniform [0, 1] distribution.
             agent_model (str): Name of the model type. Check :py:data:`ai_traineree_client.SUPPORTED_MODELS`
                 for accepted values.
+            active (bool): Whether to activate the agent.
 
         Returns:
             Details of created agent.
 
         """
         self.__validate_agent_model(agent_model)
-        self.agent_model = agent_model
+        self._agent_model = agent_model
         self._config['state_size'] = state_size
         self._config['action_size'] = action_size
         self.logger.debug("Creating an agent (name=%s, model=%s)", self.agent_name, self.agent_model)
-        payload = dict(name=self.agent_name, model=self.agent_model, description=self.description, config=self._config)
+        payload = dict(
+            name=self.agent_name,
+            model=self.agent_model,
+            description=self.description,
+            config=self._config,
+            is_active=active,
+        )
         response = requests.post(f"{self.url}/agents/", data=json.dumps(payload), headers=self._headers)
         if response.status_code >= 300:
             raise RuntimeError("Unable to create a new agent.\n%s" % response.json())
@@ -208,19 +215,24 @@ class RemoteAgent:
 
         return {k: make_str_or_number(v) for (k, v) in self._config.items()}
 
-    def info(self):
+    def info(self) -> Dict[str, Any]:
         """Gets agents meta-data from sever."""
         response = requests.get(f"{self.url}/agents/{self.agent_name}", headers=self._headers)
-        return response.json()
+        info = response.json()
+        self._config = info.get('config', self._config)
+        return info
 
     def sync(self) -> None:
         """Synchronizes local information with the one stored in Agents Bar.
         """
         agent = self.info()
-        self._config.update(agent['config'])
-        self._state_size = agent['config']['state_size']
-        self._action_size = agent['config']['action_size']
         self._agent_model = agent['model']
+        self._config.update(agent['config'])
+        # TODO: Remove str key once migrated to obs_space
+        state_key = "state_size" if "state_size" in self._config else "state_space"
+        action_key = "action_size" if "action_size" in self._config else "action_space"
+        self._state_size = self._config.get(state_key)
+        self._action_size = self._config.get(action_key)
 
     @retry(stop=stop_after_attempt(3), reraise=True)
     def get_state(self) -> EncodedAgentState:
