@@ -5,7 +5,7 @@ import os
 from typing import Any, Dict, List, Optional, Union
 
 import requests
-from tenacity import after_log, retry, stop_after_attempt
+from tenacity import after_log, retry, stop_after_attempt, wait_fixed
 
 from .types import EncodedAgentState
 from .utils import to_list
@@ -267,7 +267,7 @@ class RemoteAgent:
             return False  # Doesn't reach
         return True
 
-    @retry(stop=stop_after_attempt(3), after=after_log(global_logger, logging.INFO))
+    @retry(stop=stop_after_attempt(10), wait=wait_fixed(0.01), after=after_log(global_logger, logging.INFO))
     def act(self, state, noise: float = 0) -> ActionType:
         """Asks for action based on provided state.
 
@@ -292,7 +292,7 @@ class RemoteAgent:
             return int(action[0])
         return action
 
-    @retry(stop=stop_after_attempt(10), after=after_log(global_logger, logging.INFO))
+    @retry(stop=stop_after_attempt(10),  wait=wait_fixed(0.01), after=after_log(global_logger, logging.INFO))
     def step(self, state: StateType, action: ActionType, reward: float, next_state: StateType, done: bool) -> bool:
         """Providing information from taking a step in environment.
 
