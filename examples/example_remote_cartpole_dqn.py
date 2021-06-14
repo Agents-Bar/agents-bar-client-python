@@ -1,10 +1,10 @@
 import datetime
-import time
 from collections import deque
 from typing import Tuple
 
 import gym
-from ai_traineree_client import RemoteAgent, wait_until_agent_exists
+from ai_traineree_client import RemoteAgent
+from ai_traineree_client.utils import wait_until_agent_is_active
 
 
 def get_state_action_size(env: gym.Env):
@@ -63,27 +63,22 @@ if __name__ == "__main__":
 
     reward_goal: float = 100.0
     max_episodes: int = 200
-    eps_start: float = 0.8
+    eps_start: float = 0.94
     eps_end: float = 0.01
-    eps_decay: float = 0.99
+    eps_decay: float = 0.98
     window_len: int = 100
 
     env_name = 'CartPole-v1'
     env = gym.make(env_name)
 
-    state_size, action_size = get_state_action_size(env)
+    obs_size, action_size = get_state_action_size(env)
 
-    agent = RemoteAgent(
-        state_size=state_size, action_size=action_size,
-        agent_model="dqn", agent_name="DQN_test", description="Description of the DQN agent",
-        #url="http://localhost",
-    )
+    agent = RemoteAgent(agent_name="DQN-CartPole-example", description="Description of the DQN agent")
 
     # If the agent hasn't been created already, create a new one
     if not agent.exists:
-        agent.create_agent()
-        time.sleep(8)
-        # wait_until_agent_exists(agent)
+        agent.create_agent(obs_size=obs_size, action_size=action_size, agent_model="DQN")
+        wait_until_agent_is_active(agent)
 
     episode = 0
     epsilon = eps_start

@@ -2,16 +2,14 @@ import dataclasses
 import json
 import logging
 import os
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, Optional, Union
 
 import requests
 from tenacity import after_log, retry, stop_after_attempt, wait_fixed
 
-from .types import EncodedAgentState
+from .types import ActionType, EncodedAgentState, ObsType
 from .utils import to_list
 
-StateType = List[float]
-ActionType = Union[int, List[Union[int, float]]]
 
 SUPPORTED_MODELS = ['dqn', 'ppo', 'ddpg', 'rainbow']  #: Supported models
 
@@ -49,20 +47,19 @@ class RemoteAgent:
         self._config.update(**kwargs)
 
         self._discrete: Optional[bool] = None
-        self._state_size: Optional[int] = kwargs.get('state_size', None)
+        self._obs_size: Optional[int] = kwargs.get('obs_size', None)
         self._action_size: Optional[int] = kwargs.get('action_size', None)
         self._agent_model: Optional[str] = kwargs.get('agent_model', None)
-        # self.in_features: Tuple[int] = (self.state_size,)
         self.loss: Dict[str, float] = {}
 
         self.agent_name = agent_name
         self.description = description
 
     @property
-    def state_size(self):
-        if self._state_size is None:
+    def obs_size(self):
+        if self._obs_size is None:
             self.sync()
-        return self._state_size
+        return self._obs_size
 
     @property
     def action_size(self):
@@ -109,7 +106,7 @@ class RemoteAgent:
             )
         return response.json()['access_token']
 
-    def create_agent(self, state_size: int, action_size: int, agent_model: str, active: bool = True) -> Dict:
+    def create_agent(self, obs_size: int, action_size: int, agent_model: str, active: bool = True) -> Dict:
         """Creates a new agent in the service.
 
         Uses provided information on RemoteAgent instantiation to create a new agent.
@@ -121,7 +118,7 @@ class RemoteAgent:
         a few seconds.
 
         Parameters:
-            state_size (int): Dimensionality of the state space.
+            obs_size (int): Dimensionality of the observation space.
             action_size (int): Dimensionality of the action space.
                 In case of discrete space, that's a single dimensions with potential values.
                 In case of continuous space, that's a number of dimensions in uniform [0, 1] distribution.
@@ -135,7 +132,8 @@ class RemoteAgent:
         """
         self.__validate_agent_model(agent_model)
         self._agent_model = agent_model
-        self._config['state_size'] = state_size
+        self._discrete = None
+        self._config['obs_size'] = obs_size
         self._config['action_size'] = action_size
         self.logger.debug("Creating an agent (name=%s, model=%s)", self.agent_name, self.agent_model)
         payload = dict(
@@ -229,9 +227,9 @@ class RemoteAgent:
         self._agent_model = agent['model']
         self._config.update(agent['config'])
         # TODO: Remove str key once migrated to obs_space
-        state_key = "state_size" if "state_size" in self._config else "state_space"
+        obs_key = "obs_size" if "obs_size" in self._config else "obs_space"
         action_key = "action_size" if "action_size" in self._config else "action_space"
-        self._state_size = self._config.get(state_key)
+        self._obs_size = self._config.get(obs_key)
         self._action_size = self._config.get(action_key)
 
     @retry(stop=stop_after_attempt(3), reraise=True)
@@ -268,20 +266,20 @@ class RemoteAgent:
         return True
 
     @retry(stop=stop_after_attempt(10), wait=wait_fixed(0.01), after=after_log(global_logger, logging.INFO))
-    def act(self, state, noise: float = 0) -> ActionType:
-        """Asks for action based on provided state.
+    def act(self, obs, noise: float = 0) -> ActionType:
+        """Asks for action based on provided observation.
 
         Parameters:
-            state (List floats): Python list of floats which represent agent's state.
+            obs (List floats): Python list of floats which represent agent's observation.
             noise (float): Default 0. Value for epsilon in epsilon-greedy paradigm.
 
         Returns:
-            action (a number or list of numbers): Suggested action to take from this state.
+            action (a number or list of numbers): Suggested action to take from this observation.
                 In case of discrete problems this is a single int value. Otwherise it is
                 a list of either floats or ints.
 
         """
-        data = json.dumps(state)
+        data = json.dumps(obs)
         response = requests.post(f"{self.url}/agents/{self.agent_name}/act",
                                  params={"noise": noise}, data=data, headers=self._headers)
         if not response.ok:
@@ -293,22 +291,22 @@ class RemoteAgent:
         return action
 
     @retry(stop=stop_after_attempt(10),  wait=wait_fixed(0.01), after=after_log(global_logger, logging.INFO))
-    def step(self, state: StateType, action: ActionType, reward: float, next_state: StateType, done: bool) -> bool:
+    def step(self, obs: ObsType, action: ActionType, reward: float, next_obs: ObsType, done: bool) -> bool:
         """Providing information from taking a step in environment.
 
         *Note* that all values have to be python plain values, like ints, floats, lists...
         Unfortunately, numpy, pandas, tensors... aren't currently supported.
 
         Parameters:
-            state (StateType): Current state.
-            action (ActionType): Action taken from the current state.
-            reward (float): A reward obtained from getting to the next state.
-            next_state (StateType): The state that resulted from taking `action` at `state`.
-            done (bool): A flag whether the `next_state` is a terminal state.
+            obs (ObsType): Current observation.
+            action (ActionType): Action taken from the current observation.
+            reward (float): A reward obtained from getting to the next observation.
+            next_obs (ObsType): The observation that resulted from taking `action` at `obs`.
+            done (bool): A flag whether the `next_obs` is a terminal state.
 
         """
         step_data = {
-            "state": to_list(state), "next_state": to_list(next_state),
+            "obs": to_list(obs), "next_obs": to_list(next_obs),
             "action": to_list(action), "reward": reward, "done": done,
         }
         data = {"step_data": step_data}

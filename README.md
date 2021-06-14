@@ -8,26 +8,24 @@ in an isolation. Check the website for more information about the service, or ch
 
 The client uses `step` and `act` methods to operate with the environment. Using `act` you ask
 the agent about the action to take, and using `step` you update the agent with you learned.
-
-We will (@dawid 2021-04-05) provide Google Colab docs for everyone to quickly try the agent.
-However, for now, the best way is to check our [examples](examples/).
+For examples check [Agent's Bar doc](https://docs.agents.bar/getting-started/quick-start.html) for Google Colab link or go to [examples](examples/).
 
 For a minimal (almost) working example check this code snippet:
 
 
 ```python
 env = gym.make('CartPole-v1')  # OpenAI Gym
-agent = RemoteAgent(state_size=4, action_size=2, agent_model="DQN", agent_name="DQN_Test")
-state = env.reset().tolist()
+agent = RemoteAgent(obs_size=4, action_size=2, agent_model="DQN", agent_name="DQN_Test")
+obs = env.reset().tolist()
 
 for iteration in range(10):
-    action = agent.act(state, eps)
+    action = agent.act(obs, eps)
 
-    next_state, reward, done, _ = env.step(action)
-    next_state = next_state.tolist()
+    next_obs, reward, done, _ = env.step(action)
+    next_obs = next_obs.tolist()
 
-    agent.step(state, action, reward, next_state, done)
-    state = next_state
+    agent.step(obs, action, reward, next_obs, done)
+    obs = next_obs
 
 ```
 

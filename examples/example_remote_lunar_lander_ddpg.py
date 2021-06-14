@@ -2,7 +2,8 @@ from collections import deque
 from typing import Tuple
 
 import gym
-from ai_traineree_client import RemoteAgent, wait_until_agent_exists
+from ai_traineree_client import RemoteAgent
+from ai_traineree_client.utils import wait_until_agent_is_active
 
 
 def get_state_action_size(env: gym.Env):
@@ -69,17 +70,14 @@ if __name__ == "__main__":
     env_name = 'LunarLanderContinuous-v2'
     env = gym.make(env_name)
 
-    state_size, action_size = get_state_action_size(env)
+    obs_size, action_size = get_state_action_size(env)
 
-    agent = RemoteAgent(
-        state_size=state_size, action_size=action_size,
-        agent_model="ddpg", agent_name="DDPG_test", description="Description of the DDPG agent",
-    )
+    agent = RemoteAgent(agent_name="DDPG-LunarLander-example", description="Description of the DDPG agent")
 
     # If the agent hasn't been created already, create a new one
     if not agent.exists:
-        agent.create_agent()
-        wait_until_agent_exists(agent)
+        agent.create_agent(obs_size=obs_size, action_size=action_size, agent_model="DDPG")
+        wait_until_agent_is_active(agent)
 
     episode = 0
     epsilon = eps_start
