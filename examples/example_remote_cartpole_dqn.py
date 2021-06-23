@@ -2,7 +2,13 @@ import datetime
 from collections import deque
 from typing import Tuple
 
-import gym
+try:
+    import gym
+except ModuleNotFoundError:
+    raise ModuleNotFoundError(
+        "OpenGym isn't included by default. To run examples make sure to install gym "
+        "through gym option, i.e. `pip install -e .[gym]`, or directly, i.e. `pip install gym==0.18`."
+    )
 from agents_bar import RemoteAgent
 from agents_bar.utils import wait_until_agent_is_active
 
