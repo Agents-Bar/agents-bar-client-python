@@ -2,8 +2,8 @@ from collections import deque
 from typing import Tuple
 
 import gym
-from ai_traineree_client import RemoteAgent
-from ai_traineree_client.utils import wait_until_agent_is_active
+from agents_bar import RemoteAgent
+from agents_bar.utils import wait_until_agent_is_active
 
 
 def get_state_action_size(env: gym.Env):

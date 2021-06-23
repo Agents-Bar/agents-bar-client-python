@@ -114,7 +114,7 @@ class RemoteAgent:
 
         *Note* that it can take a few seconds to create a new agent. In such a case,
         any calls to the agent might fail. To make sure that your program doesn't fail
-        either use :py:func:`ai_traineree_client.wait_until_agent_exists` or manually sleep for
+        either use :py:func:`agents_bar.wait_until_agent_exists` or manually sleep for
         a few seconds.
 
         Parameters:
@@ -122,7 +122,7 @@ class RemoteAgent:
             action_size (int): Dimensionality of the action space.
                 In case of discrete space, that's a single dimensions with potential values.
                 In case of continuous space, that's a number of dimensions in uniform [0, 1] distribution.
-            agent_model (str): Name of the model type. Check :py:data:`ai_traineree_client.SUPPORTED_MODELS`
+            agent_model (str): Name of the model type. Check :py:data:`agents_bar.SUPPORTED_MODELS`
                 for accepted values.
             active (bool): Whether to activate the agent.
 

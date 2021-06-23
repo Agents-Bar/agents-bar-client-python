@@ -1,14 +1,16 @@
-# AI Traineree Client
+# Agents Bar Python Client
 
-This package is a client for the [Agents Bar](https://agents.bar). It isn't supposed to be used
-in an isolation. Check the website for more information about the service, or check the 
-[Agents Bar Docs](https://docs.agents.bar) for more specific information on how to use the client.
+This package is a python client for [Agents Bar](https://agents.bar) service.
+It isn't supposed to be used in an isolation and you are supposed to have an existing account.
+Check the website for more information about the service,
+or check the [Agents Bar Docs](https://docs.agents.bar) to learn more how to use this client.
 
 ## Quick start
 
-The client uses `step` and `act` methods to operate with the environment. Using `act` you ask
-the agent about the action to take, and using `step` you update the agent with you learned.
-For examples check [Agent's Bar doc](https://docs.agents.bar/getting-started/quick-start.html) for Google Colab link or go to [examples](examples/).
+The client allows to communicate with service by wrapping around APIs and coveraging common use patterns.
+
+A common usage is replacing your deep reinforcement learning agent with an entity that uses `step` and `act` APIs for progressing agent and infering action, respectively.
+For usage examples as Google Colab check [Doc's quick start](https://docs.agents.bar/getting-started/quick-start.html) link and for scripts check [examples](examples/) directory.
 
 For a minimal (almost) working example check this code snippet:
 
@@ -33,15 +35,15 @@ for iteration in range(10):
 
 ### Pip (Recommended)
 
-The latest stable version should always be accessible through `pip` at [ai-traineree-client](https://pypi.org/project/ai-traineree-client). To install locally add `ai-traineree-client` to your dependency file, e.g. requirements.txt, or install it directly using
+The latest stable version should always be accessible through `pip` as [agents-bar](https://pypi.org/project/agents-bar). To install locally add `agents-bar` to your dependency file, e.g. requirements.txt, or install it directly using
 
 ```
-pip install ai-traineree-client
+pip install agents-bar
 ```
 
 ### GitHub source
 
-Checkout this package using `git clone git@github.com:laszukdawid/ai-traineree-client.git`. This will create a new directory `ai-traineree-client`. Go ahead, enter the directory and install the package via `pip install -e .`.
+Checkout this package using `git clone git@github.com:agents-bar/agents-bar-client-python`. This will create a new directory `agents-bar-client-python`. Go ahead, enter the directory and install the package via `pip install -e .`.
 
 *Note* we recommend having a separate python environment for standalone projects, e.g. using `python -m venv` command.
 
