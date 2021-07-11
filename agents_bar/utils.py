@@ -1,6 +1,9 @@
 import time
 from typing import List
 
+import requests
+from requests.models import HTTPError
+
 
 def wait_until_agent_is_active(agent, max_seconds: int = 20, verbose: bool = True) -> bool:
     """
@@ -79,3 +82,14 @@ def to_list(x: object) -> List:
         return [x]
     # Just hoping...
     return list(x)
+
+
+def response_raise_error_if_any(response: requests.Response) -> None:
+    """
+    Checks if there is any error while make a request.
+    If status 400+ then raises HTTPError with provided reason.
+    """
+    try:
+        response.raise_for_status()
+    except requests.exceptions.HTTPError as e:
+        raise HTTPError({"error": str(e), "reason": response.json()['detail']}) from None

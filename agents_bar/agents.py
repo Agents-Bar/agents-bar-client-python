@@ -1,9 +1,12 @@
+from agents_bar.utils import response_raise_error_if_any
 from typing import Dict, List, Optional
 
 from agents_bar.client import Client
 
+AGENTS_PREFIX = "/agents"
 
-def get_agents(client: Client) -> List[Dict]:
+
+def get_many(client: Client) -> List[Dict]:
     """Gets agents belonging to authenticated user.
 
     Parameters:
@@ -13,12 +16,11 @@ def get_agents(client: Client) -> List[Dict]:
         List of agents.
 
     """
-    response = client.get('/agents/')
-    if not response.ok:
-        response.raise_for_status()
+    response = client.get(f'{AGENTS_PREFIX}/')
+    response_raise_error_if_any(response)
     return response.json()
 
-def get_agent(client: Client, agent_name: str) -> Dict:
+def get(client: Client, agent_name: str) -> Dict:
     """Get indepth information about a specific agent.
 
     Parameters:
@@ -29,12 +31,11 @@ def get_agent(client: Client, agent_name: str) -> Dict:
         Details of an agent.
 
     """
-    response = client.get(f'/agents/{agent_name}')
-    if not response.ok:
-        response.raise_for_status()
+    response = client.get(f'{AGENTS_PREFIX}/{agent_name}')
+    response_raise_error_if_any(response)
     return response.json()
 
-def create_agent(client: Client, config: Dict) -> Dict:
+def create(client: Client, config: Dict) -> Dict:
     """Creates an agent with specified configuration.
 
     Parameters:
@@ -45,12 +46,11 @@ def create_agent(client: Client, config: Dict) -> Dict:
         Details of an agent.
 
     """
-    response = client.post('/agents/', data=config)
-    if not response.ok:
-        response.raise_for_status()
+    response = client.post(f'{AGENTS_PREFIX}/', data=config)
+    response_raise_error_if_any(response)
     return response.json()
 
-def delete_agent(client: Client, agent_name: str) -> bool:
+def delete(client: Client, agent_name: str) -> bool:
     """Deletes specified agent.
 
     Parameters:
@@ -61,13 +61,12 @@ def delete_agent(client: Client, agent_name: str) -> bool:
         Whether agent was delete. True if an agent was delete, False if there was no such agent.
 
     """
-    response = client.delete('/agents/' + agent_name)
-    if not response.ok:
-        response.raise_for_status()
+    response = client.delete(f'{AGENTS_PREFIX}/' + agent_name)
+    response_raise_error_if_any(response)
     return response.status_code == 202
 
 
-def get_agent_loss(client: Client, agent_name: str) -> Dict:
+def get_loss(client: Client, agent_name: str) -> Dict:
     """Recent loss metrics.
 
     Parameters:
@@ -78,19 +77,41 @@ def get_agent_loss(client: Client, agent_name: str) -> Dict:
         Loss metrics in a dictionary.
 
     """
-    response = client.get(f'/agents/{agent_name}/loss')
-    if not response.ok:
-        response.raise_for_status()
+    response = client.get(f'{AGENTS_PREFIX}/{agent_name}/loss')
+    response_raise_error_if_any(response)
     return response.json()
 
-def agent_step(client, agent_name: str, step: Dict) -> None:
-    response = client.post(f"/agents/{agent_name}/step", step)
-    if not response.ok:
-        response.raise_for_status()
+def step(client, agent_name: str, step: Dict) -> None:
+    """Steps forward in agents learning mechanism.
+
+    This method is used to provide learning data, like recent observations and rewards,
+    and trigger learning mechanism. *Note* that majority of agents perform `step` after
+    every environment iteration (`step`).
+
+    Parameters:
+        client (Client): Authenticated client.
+        agent_name (str): Name of agent.
+        step (Dict): Data required for the agent to use in learning.
+            Likely that's `observation`, `next_observation`, `reward`, `action` values and `done` flag.
+    
+    """
+    response = client.post(f"{AGENTS_PREFIX}/{agent_name}/step", step)
+    response_raise_error_if_any(response)
     return
 
-def agent_act(client, agent_name: str, obs: Dict, params: Optional[Dict] = None) -> Dict:
-    response = client.post(f"/agents/{agent_name}/act", obs, params=params)
-    if not response.ok:
-        response.raise_for_status()
+def act(client, agent_name: str, obs: Dict, params: Optional[Dict] = None) -> Dict:
+    """Asks agent about its action on provided observation.
+
+    Parameters:
+        client (Client): Authenticated client.
+        agent_name (str): Name of agent.
+        obs (Dict): Observation from current environment state.
+        params (Optional dict): Anything useful for the agent to learn, e.g. epsilon greedy value.
+    
+    Returns:
+        Dictionary container actions.
+    
+    """
+    response = client.post(f"{AGENTS_PREFIX}/{agent_name}/act", obs, params=params)
+    response_raise_error_if_any(response)
     return response.json()

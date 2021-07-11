@@ -1,15 +1,13 @@
 import dataclasses
-import json
 import logging
-import os
 from typing import Any, Dict, Optional, Union
 
-import requests
 from tenacity import after_log, retry, stop_after_attempt, wait_fixed
 
-from .types import ActionType, EncodedAgentState, ObsType
-from .utils import to_list
+from agents_bar.client import Client
 
+from .types import ActionType, EncodedAgentState, ObsType
+from .utils import response_raise_error_if_any, to_list
 
 SUPPORTED_MODELS = ['dqn', 'ppo', 'ddpg', 'rainbow']  #: Supported models
 
@@ -21,7 +19,7 @@ class RemoteAgent:
     default_url = "https://agents.bar"
     logger = logging.getLogger("RemoteAgent")
 
-    def __init__(self, agent_name: str, description: str = "", **kwargs):
+    def __init__(self, client: Client, agent_name: str,  **kwargs):
         """
         An instance of the agent in the Agents Bar.
 
@@ -35,13 +33,7 @@ class RemoteAgent:
             password (str): Default None. Overrides password from the env variables.
 
         """
-        self.url = self.__parse_url(kwargs)
-        # Pop credentials so that they aren't in the app beyond this point
-        self.__access_token = self.get_access_token(
-            access_token=kwargs.pop("access_token", None), username=kwargs.pop("username", None),
-            password=kwargs.pop("password", None)
-        )
-        self._headers = {"Authorization": f"Bearer {self.__access_token}", "accept": "application/json"}
+        self._client: Client = client
 
         self._config: Dict = {}
         self._config.update(**kwargs)
@@ -53,7 +45,7 @@ class RemoteAgent:
         self.loss: Dict[str, float] = {}
 
         self.agent_name = agent_name
-        self.description = description
+        self._description: Optional[str] = None
 
     @property
     def obs_size(self):
@@ -73,40 +65,7 @@ class RemoteAgent:
             self.sync()
         return self._agent_model
 
-    @staticmethod
-    def __parse_url(kwargs) -> str:
-        url = kwargs.pop("url", RemoteAgent.default_url)
-        if url[:4].lower() != "http":
-            url = "https://" + url
-        return url + "/api/v1"
-
-    def get_access_token(self, username=None, password=None, access_token=None) -> str:
-        """Retrieves access token.
-
-        """
-        access_token = access_token if access_token is not None else os.environ.get('AGENTS_BAR_ACCESS_TOKEN')
-        if access_token is None:
-            access_token = self.__login(username=username, password=password)
-        return access_token
-
-    def __login(self, username: Optional[str] = None, password: Optional[str] = None):
-        username = username if username is not None else os.environ.get('AGENTS_BAR_USER')
-        password = password if password is not None else os.environ.get('AGENTS_BAR_PASS')
-        if username is None or password is None:
-            raise ValueError("No credentials provided for logging in. Please pass either 'access_token' or "
-                             "('username' and 'password'). These credentials should be related to your Agents Bar account.")
-
-        data = dict(username=username, password=password)
-        response = requests.post(f"{self.url}/login/access-token", data=data)
-        if response.status_code >= 300:
-            self.logger.error(response.text)
-            raise ValueError(
-                f"Received an error while trying to authenticate as username='{username}'. "
-                f"Please double check your credentials. Error: {response.text}"
-            )
-        return response.json()['access_token']
-
-    def create_agent(self, obs_size: int, action_size: int, agent_model: str, active: bool = True) -> Dict:
+    def create_agent(self, obs_size: int, action_size: int, agent_model: str, active: bool = True, description: Optional[str] = None) -> Dict:
         """Creates a new agent in the service.
 
         Uses provided information on RemoteAgent instantiation to create a new agent.
@@ -135,15 +94,18 @@ class RemoteAgent:
         self._discrete = None
         self._config['obs_size'] = obs_size
         self._config['action_size'] = action_size
+        self._description = description
+
         self.logger.debug("Creating an agent (name=%s, model=%s)", self.agent_name, self.agent_model)
         payload = dict(
             name=self.agent_name,
             model=self.agent_model,
-            description=self.description,
+            description=self._description,
             config=self._config,
             is_active=active,
         )
-        response = requests.post(f"{self.url}/agents/", data=json.dumps(payload), headers=self._headers)
+        response = self._client.post('/agents', data=payload)
+        # response = requests.post(f"{self.url}/agents/", data=json.dumps(payload), headers=self._headers)
         if response.status_code >= 300:
             raise RuntimeError("Unable to create a new agent.\n%s" % response.json())
         return response.json()
@@ -169,7 +131,7 @@ class RemoteAgent:
             raise ValueError("You wanted to delete an agent. Are you sure? If so, we need *again* its name.")
 
         self.logger.warning("Agent '%s' is being exterminated", agent_name)
-        response = requests.delete(f"{self.url}/agents/{agent_name}", headers=self._headers)
+        response = self._client.delete(f"/agents/{agent_name}")
         if response.status_code >= 300:
             raise RuntimeError(f"Error while deleting the agent '{agent_name}'. Message from server: {response.text}")
         return True
@@ -177,12 +139,12 @@ class RemoteAgent:
     @property
     def exists(self):
         """Whether the agent service exists and is accessible"""
-        response = requests.get(f"{self.url}/agents/{self.agent_name}", headers=self._headers)
+        response = self._client.get(f"/agents/{self.agent_name}")
         return response.ok
     
     @property
     def is_active(self):
-        response = requests.get(f"{self.url}/agents/{self.agent_name}", headers=self._headers)
+        response = self._client.get(f"/agents/{self.agent_name}")
         if not response.ok:
             response.raise_for_status()
         agent = response.json()
@@ -215,7 +177,7 @@ class RemoteAgent:
 
     def info(self) -> Dict[str, Any]:
         """Gets agents meta-data from sever."""
-        response = requests.get(f"{self.url}/agents/{self.agent_name}", headers=self._headers)
+        response = self._client.get(f"/agents/{self.agent_name}")
         info = response.json()
         self._config = info.get('config', self._config)
         return info
@@ -242,7 +204,7 @@ class RemoteAgent:
             Snapshot with config, buffer and network states being encoded.
 
         """
-        response = requests.get(f"{self.url}/snapshots/{self.agent_name}", headers=self._headers)
+        response = self._client.get(f"/snapshots/{self.agent_name}")
         if not response.ok:
             response.raise_for_status()
         state = response.json()
@@ -259,7 +221,7 @@ class RemoteAgent:
 
         """
         j_state = dataclasses.asdict(state)
-        response = requests.post(f"{self.url}/snapshots/{self.agent_name}", json=j_state, headers=self._headers)
+        response = self._client.post(f"/snapshots/{self.agent_name}", data=j_state)
         if not response.ok:
             response.raise_for_status()  # Raises
             return False  # Doesn't reach
@@ -279,9 +241,7 @@ class RemoteAgent:
                 a list of either floats or ints.
 
         """
-        data = json.dumps(obs)
-        response = requests.post(f"{self.url}/agents/{self.agent_name}/act",
-                                 params={"noise": noise}, data=data, headers=self._headers)
+        response = self._client.post(f"/agents/{self.agent_name}/act", params={"noise": noise}, data=obs)
         if not response.ok:
             response.raise_for_status()  # Raises http
 
@@ -290,7 +250,7 @@ class RemoteAgent:
             return int(action[0])
         return action
 
-    @retry(stop=stop_after_attempt(10),  wait=wait_fixed(0.01), after=after_log(global_logger, logging.INFO))
+    @retry(stop=stop_after_attempt(5),  wait=wait_fixed(0.01), after=after_log(global_logger, logging.INFO), reraise=True)
     def step(self, obs: ObsType, action: ActionType, reward: float, next_obs: ObsType, done: bool) -> bool:
         """Providing information from taking a step in environment.
 
@@ -311,9 +271,6 @@ class RemoteAgent:
         }
         data = {"step_data": step_data}
 
-        response = requests.post(f"{self.url}/agents/{self.agent_name}/step",
-                                 data=json.dumps(data), headers=self._headers)
-        if not response.ok:
-            response.raise_for_status()  # Raises http
-            return False
+        response = self._client.post(f"/agents/{self.agent_name}/step", data=data)
+        response_raise_error_if_any(response)
         return True
