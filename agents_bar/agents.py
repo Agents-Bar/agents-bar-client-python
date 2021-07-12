@@ -95,7 +95,7 @@ def step(client, agent_name: str, step: Dict) -> None:
             Likely that's `observation`, `next_observation`, `reward`, `action` values and `done` flag.
     
     """
-    response = client.post(f"{AGENTS_PREFIX}/{agent_name}/step", step)
+    response = client.post(f"{AGENTS_PREFIX}/{agent_name}/step", data=step)
     response_raise_error_if_any(response)
     return
 

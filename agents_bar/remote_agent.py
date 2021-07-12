@@ -5,9 +5,10 @@ from typing import Any, Dict, Optional, Union
 from tenacity import after_log, retry, stop_after_attempt, wait_fixed
 
 from agents_bar.client import Client
+from agents_bar import agents
 
 from .types import ActionType, EncodedAgentState, ObsType
-from .utils import response_raise_error_if_any, to_list
+from .utils import to_list
 
 SUPPORTED_MODELS = ['dqn', 'ppo', 'ddpg', 'rainbow']  #: Supported models
 
@@ -104,11 +105,8 @@ class RemoteAgent:
             config=self._config,
             is_active=active,
         )
-        response = self._client.post('/agents', data=payload)
-        # response = requests.post(f"{self.url}/agents/", data=json.dumps(payload), headers=self._headers)
-        if response.status_code >= 300:
-            raise RuntimeError("Unable to create a new agent.\n%s" % response.json())
-        return response.json()
+        j_response = agents.create(self._client, config=payload)
+        return j_response
 
     def remove(self, *, agent_name: str, quite: bool = True) -> bool:
         """Deletes the agent.
@@ -121,7 +119,7 @@ class RemoteAgent:
             quite (bool): Silently ignores if provided agent_name doesn't match actual name.
 
         Returns:
-            Boolean whether delete was successful.
+            Boolean whether an agent was delete. False can mean that the agent didn't exist.
 
         """
         if agent_name is None or self.agent_name != agent_name:
@@ -131,10 +129,8 @@ class RemoteAgent:
             raise ValueError("You wanted to delete an agent. Are you sure? If so, we need *again* its name.")
 
         self.logger.warning("Agent '%s' is being exterminated", agent_name)
-        response = self._client.delete(f"/agents/{agent_name}")
-        if response.status_code >= 300:
-            raise RuntimeError(f"Error while deleting the agent '{agent_name}'. Message from server: {response.text}")
-        return True
+        is_agent_deleted = agents.delete(self._client, agent_name=agent_name)
+        return is_agent_deleted
 
     @property
     def exists(self):
@@ -144,15 +140,13 @@ class RemoteAgent:
     
     @property
     def is_active(self):
-        response = self._client.get(f"/agents/{self.agent_name}")
-        if not response.ok:
-            response.raise_for_status()
-        agent = response.json()
-        return agent['is_active']
+        j_response = agents.get(self._client, self.agent_name)
+        return j_response['is_active']
 
     @property
     def discrete(self):
         if self._discrete is None:
+            assert self.agent_model, "Need to know model before guessing whether it's discrete"
             self._discrete = self.agent_model.lower() in ("dqn", 'rainbow')
         return self._discrete
 
@@ -177,8 +171,7 @@ class RemoteAgent:
 
     def info(self) -> Dict[str, Any]:
         """Gets agents meta-data from sever."""
-        response = self._client.get(f"/agents/{self.agent_name}")
-        info = response.json()
+        info = agents.get(self._client, self.agent_name)
         self._config = info.get('config', self._config)
         return info
 
@@ -241,11 +234,9 @@ class RemoteAgent:
                 a list of either floats or ints.
 
         """
-        response = self._client.post(f"/agents/{self.agent_name}/act", params={"noise": noise}, data=obs)
-        if not response.ok:
-            response.raise_for_status()  # Raises http
+        j_response = agents.act(self._client, agent_name=self.agent_name, params={"noise": noise}, obs=obs)
 
-        action = response.json()['action']
+        action = j_response['action']
         if self.discrete:
             return int(action[0])
         return action
@@ -271,6 +262,5 @@ class RemoteAgent:
         }
         data = {"step_data": step_data}
 
-        response = self._client.post(f"/agents/{self.agent_name}/step", data=data)
-        response_raise_error_if_any(response)
+        agents.step(client=self._client, agent_name=self.agent_name, step=data)
         return True

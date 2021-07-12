@@ -20,7 +20,7 @@ for iteration in range(10):
     action = agent.act(obs)
 
     out = environments.step(client, env_name, step={"actions": [action], "commit": True})
-    next_obs, reward, done = out.get("observation"), out.get("reward"), done.get("done")
+    next_obs, reward, done = out.get("observation"), out.get("reward"), out.get("done")
 
     agent.step(obs, action, reward, next_obs, done)
     obs = next_obs
