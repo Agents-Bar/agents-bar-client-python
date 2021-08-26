@@ -92,4 +92,9 @@ def response_raise_error_if_any(response: requests.Response) -> None:
     try:
         response.raise_for_status()
     except requests.exceptions.HTTPError as e:
-        raise HTTPError({"error": str(e), "reason": response.json()['detail']}) from None
+        msg = response.text
+        try:
+            msg = response.json().get('detail')
+        except:
+            pass
+        raise HTTPError({"error": str(e), "reason": msg}) from None

@@ -5,3 +5,9 @@ __pycachce__/
 agents_bar.egg-info/
 build/
 dist/
+
+*.ipynb
+.ipynb_checkpoints
+
+.idea
+.vscode
