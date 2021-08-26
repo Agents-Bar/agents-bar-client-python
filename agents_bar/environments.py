@@ -1,6 +1,8 @@
+from dataclasses import asdict
 from typing import Any, Dict, List
 
 from agents_bar.client import Client
+from agents_bar.types import EnvironmentCreate
 from agents_bar.utils import response_raise_error_if_any
 
 ENV_PREFIX = "/environments"
@@ -34,7 +36,7 @@ def get(client: Client, env_name: str) -> Dict:
     response_raise_error_if_any(response)
     return response.json()
 
-def create(client: Client, config: Dict) -> Dict:
+def create(client: Client, env_create: EnvironmentCreate) -> Dict:
     """Creates an environment with specified configuration.
 
     Parameters:
@@ -45,7 +47,8 @@ def create(client: Client, config: Dict) -> Dict:
         Details of an environment.
 
     """
-    response = client.post(f'{ENV_PREFIX}/', data=config)
+    env_create_dict = asdict(env_create)
+    response = client.post(f'{ENV_PREFIX}/', data=env_create_dict)
     response_raise_error_if_any(response)
     return response.json()
 

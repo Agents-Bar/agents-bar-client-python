@@ -1,4 +1,4 @@
-import dataclasses
+from dataclasses import asdict
 from typing import Dict, List, Optional
 
 from agents_bar.client import Client
@@ -47,7 +47,7 @@ def create(client: Client, experiment_create: ExperimentCreate) -> Dict:
         Details of an experiment.
 
     """
-    response = client.post(f'{EXP_PREFIX}/', data=dataclasses.asdict(experiment_create))
+    response = client.post(f'{EXP_PREFIX}/', data=asdict(experiment_create))
     response_raise_error_if_any(response)
     return response.json()
 
@@ -99,4 +99,4 @@ def start(client: Client, exp_name: str, config: Optional[Dict] = None) -> str:
     config = config or {}
     response = client.post(f"{EXP_PREFIX}/{exp_name}/start", data=config)
     response_raise_error_if_any(response)
-    return response.text
+    return "Started successfully" if response.ok else "Failed to start"

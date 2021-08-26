@@ -1,8 +1,9 @@
-from dataclasses import Field, dataclass
-from typing import Any, List, Dict, Optional, Union
+from dataclasses import dataclass
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 ObsType = List[float]
 ActionType = Union[int, List[Union[int, float]]]
+
 
 @dataclass
 class EncodedAgentState:
@@ -15,10 +16,37 @@ class EncodedAgentState:
 
 
 @dataclass
-class ExperimentCreate:
+class AgentCreate:
     name: str
-    agent_name: str
-    environment_name: str
+    model: str
+    image: str
     config: Dict[str, Any]
     description: Optional[str] = None
     is_active: Optional[bool] = True
+
+
+@dataclass
+class EnvironmentCreate:
+    name: str
+    image: str
+    config: Dict[str, Any]
+    description: Optional[str] = None
+    is_active: Optional[bool] = True
+
+
+@dataclass
+class ExperimentCreate:
+    name: str
+    agent_names: List[str]
+    environment_names: List[str]
+    config: Dict[str, Any]
+    description: Optional[str] = None
+    is_active: Optional[bool] = True
+
+
+@dataclass
+class Space:
+    dtype: Optional[str] = None
+    shape: Optional[Tuple[int]] = None
+    low: Optional[Union[int, float, List[Any]]] = None
+    high: Optional[Union[int, float, List[Any]]] = None

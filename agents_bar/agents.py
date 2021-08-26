@@ -1,7 +1,9 @@
-from agents_bar.utils import response_raise_error_if_any
+from dataclasses import asdict
 from typing import Dict, List, Optional
 
 from agents_bar.client import Client
+from agents_bar.types import AgentCreate
+from agents_bar.utils import response_raise_error_if_any
 
 AGENTS_PREFIX = "/agents"
 
@@ -35,7 +37,7 @@ def get(client: Client, agent_name: str) -> Dict:
     response_raise_error_if_any(response)
     return response.json()
 
-def create(client: Client, config: Dict) -> Dict:
+def create(client: Client, agent_create: AgentCreate) -> Dict:
     """Creates an agent with specified configuration.
 
     Parameters:
@@ -46,7 +48,8 @@ def create(client: Client, config: Dict) -> Dict:
         Details of an agent.
 
     """
-    response = client.post(f'{AGENTS_PREFIX}/', data=config)
+    agent_create_dict = asdict(agent_create, dict_factory=lambda x: {k: v for (k,v) in x if v is not None})
+    response = client.post(f'{AGENTS_PREFIX}/', data=agent_create_dict)
     response_raise_error_if_any(response)
     return response.json()
 
@@ -61,7 +64,7 @@ def delete(client: Client, agent_name: str) -> bool:
         Whether agent was delete. True if an agent was delete, False if there was no such agent.
 
     """
-    response = client.delete(f'{AGENTS_PREFIX}/' + agent_name)
+    response = client.delete(f'{AGENTS_PREFIX}/{agent_name}')
     response_raise_error_if_any(response)
     return response.status_code == 202
 
