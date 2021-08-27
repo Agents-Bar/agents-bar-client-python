@@ -21,6 +21,7 @@ def get_many(client: Client) -> List[Dict]:
     response = client.get(f"{ENV_PREFIX}/")
     return response.json()
 
+
 def get(client: Client, env_name: str) -> Dict:
     """Get indepth information about a specific environment.
 
@@ -35,6 +36,7 @@ def get(client: Client, env_name: str) -> Dict:
     response = client.get(f'{ENV_PREFIX}/{env_name}')
     response_raise_error_if_any(response)
     return response.json()
+
 
 def create(client: Client, env_create: EnvironmentCreate) -> Dict:
     """Creates an environment with specified configuration.
@@ -52,6 +54,7 @@ def create(client: Client, env_create: EnvironmentCreate) -> Dict:
     response_raise_error_if_any(response)
     return response.json()
 
+
 def delete(client: Client, env_name: str) -> bool:
     """Deletes specified environment.
 
@@ -66,6 +69,7 @@ def delete(client: Client, env_name: str) -> bool:
     response = client.delete(f'{ENV_PREFIX}/{env_name}')
     response_raise_error_if_any(response)
     return response.status_code == 202
+
 
 def reset(client: Client, env_name: str) -> List[float]:
     """Resets the environment to starting position.
@@ -117,6 +121,7 @@ def commit(client: Client, env_name: str) -> Dict[str, Any]:
     response = client.post(f"{ENV_PREFIX}/{env_name}/commit")
     response_raise_error_if_any(response)
     return response.json()
+
 
 def info(client: Client, env_name: str) -> Dict[str, Any]:
     response = client.get(f"{ENV_PREFIX}/{env_name}/info")

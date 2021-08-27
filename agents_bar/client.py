@@ -37,15 +37,11 @@ class Client(object):
             raise ValueError("No credentials provided for logging in. Please pass either 'access_token' or "
                              "('username' and 'password'). These credentials should be related to your Agents Bar account.")
         
-        self._username = username
+        self.username = username
         self._base_url: str = self.__parse_url(base_url)
         self.__access_token: str = self.__login(username, password)
 
         self._headers = {"Authorization": f"Bearer {self.__access_token}", "accept": "application/json"}
-
-    @property
-    def username(self):
-        return self._username
 
     @staticmethod
     def __parse_url(base_url: Optional[str] = None) -> str:

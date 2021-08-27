@@ -22,6 +22,7 @@ def get_many(client: Client) -> List[Dict]:
     response_raise_error_if_any(response)
     return response.json()
 
+
 def get(client: Client, agent_name: str) -> Dict:
     """Get indepth information about a specific agent.
 
@@ -36,6 +37,7 @@ def get(client: Client, agent_name: str) -> Dict:
     response = client.get(f'{AGENTS_PREFIX}/{agent_name}')
     response_raise_error_if_any(response)
     return response.json()
+
 
 def create(client: Client, agent_create: AgentCreate) -> Dict:
     """Creates an agent with specified configuration.
@@ -52,6 +54,7 @@ def create(client: Client, agent_create: AgentCreate) -> Dict:
     response = client.post(f'{AGENTS_PREFIX}/', data=agent_create_dict)
     response_raise_error_if_any(response)
     return response.json()
+
 
 def delete(client: Client, agent_name: str) -> bool:
     """Deletes specified agent.
@@ -84,6 +87,7 @@ def get_loss(client: Client, agent_name: str) -> Dict:
     response_raise_error_if_any(response)
     return response.json()
 
+
 def step(client, agent_name: str, step: Dict) -> None:
     """Steps forward in agents learning mechanism.
 
@@ -101,6 +105,7 @@ def step(client, agent_name: str, step: Dict) -> None:
     response = client.post(f"{AGENTS_PREFIX}/{agent_name}/step", data=step)
     response_raise_error_if_any(response)
     return
+
 
 def act(client, agent_name: str, obs: Dict, params: Optional[Dict] = None) -> Dict:
     """Asks agent about its action on provided observation.

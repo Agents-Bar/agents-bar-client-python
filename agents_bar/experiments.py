@@ -21,6 +21,7 @@ def get_many(client: Client) -> List[Dict]:
     response = client.get(f"{EXP_PREFIX}/")
     return response.json()
 
+
 def get(client: Client, exp_name: str) -> Dict:
     """Get indepth information about a specific experiment.
 
@@ -35,6 +36,7 @@ def get(client: Client, exp_name: str) -> Dict:
     response = client.get(f'{EXP_PREFIX}/{exp_name}')
     response_raise_error_if_any(response)
     return response.json()
+
 
 def create(client: Client, experiment_create: ExperimentCreate) -> Dict:
     """Creates an experiment with specified configuration.
@@ -51,6 +53,7 @@ def create(client: Client, experiment_create: ExperimentCreate) -> Dict:
     response_raise_error_if_any(response)
     return response.json()
 
+
 def delete(client: Client, exp_name: str) -> bool:
     """Deletes specified experiment.
 
@@ -65,6 +68,7 @@ def delete(client: Client, exp_name: str) -> bool:
     response = client.delete(f'{EXP_PREFIX}/{exp_name}')
     response_raise_error_if_any(response)
     return response.status_code == 202
+
 
 def reset(client: Client, exp_name: str) -> str:
     """Resets the experiment to starting position.
