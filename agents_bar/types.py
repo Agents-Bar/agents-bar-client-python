@@ -45,7 +45,7 @@ class ExperimentCreate:
 
 
 @dataclass
-class Space:
+class DataSpace:
     dtype: Optional[str] = None
     shape: Optional[Tuple[int]] = None
     low: Optional[Union[int, float, List[Any]]] = None

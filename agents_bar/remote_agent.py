@@ -4,10 +4,10 @@ from typing import Any, Dict, Optional, Union
 
 from tenacity import after_log, retry, stop_after_attempt, wait_fixed
 
-from agents_bar.client import Client
 from agents_bar import agents
+from agents_bar.client import Client
 
-from .types import ActionType, EncodedAgentState, ObsType
+from .types import ActionType, AgentCreate, DataSpace, EncodedAgentState, ObsType
 from .utils import to_list
 
 SUPPORTED_MODELS = ['dqn', 'ppo', 'ddpg', 'rainbow']  #: Supported models
@@ -40,8 +40,8 @@ class RemoteAgent:
         self._config.update(**kwargs)
 
         self._discrete: Optional[bool] = None
-        self._obs_size: Optional[int] = kwargs.get('obs_size', None)
-        self._action_size: Optional[int] = kwargs.get('action_size', None)
+        self._obs_space: Optional[int] = kwargs.get('obs_space', None)
+        self._action_space: Optional[int] = kwargs.get('action_space', None)
         self._agent_model: Optional[str] = kwargs.get('agent_model', None)
         self.loss: Dict[str, float] = {}
 
@@ -49,16 +49,16 @@ class RemoteAgent:
         self._description: Optional[str] = None
 
     @property
-    def obs_size(self):
-        if self._obs_size is None:
+    def obs_space(self):
+        if self._obs_space is None:
             self.sync()
-        return self._obs_size
+        return self._obs_space
 
     @property
-    def action_size(self):
-        if self._action_size is None:
+    def action_space(self):
+        if self._action_space is None:
             self.sync()
-        return self._action_size
+        return self._action_space
 
     @property
     def agent_model(self):
@@ -66,7 +66,14 @@ class RemoteAgent:
             self.sync()
         return self._agent_model
 
-    def create_agent(self, obs_size: int, action_size: int, agent_model: str, active: bool = True, description: Optional[str] = None) -> Dict:
+    def create_agent(
+        self,
+        obs_space: DataSpace,
+        action_space: DataSpace,
+        active: bool = True,
+        agent_model: Optional[str] = None,
+        description: Optional[str] = None,
+    ) -> Dict:
         """Creates a new agent in the service.
 
         Uses provided information on RemoteAgent instantiation to create a new agent.
@@ -78,8 +85,8 @@ class RemoteAgent:
         a few seconds.
 
         Parameters:
-            obs_size (int): Dimensionality of the observation space.
-            action_size (int): Dimensionality of the action space.
+            obs_space (DataSpace): Dimensionality of the observation space.
+            action_sspace (DataSpace): Dimensionality of the action space.
                 In case of discrete space, that's a single dimensions with potential values.
                 In case of continuous space, that's a number of dimensions in uniform [0, 1] distribution.
             agent_model (str): Name of the model type. Check :py:data:`agents_bar.SUPPORTED_MODELS`
@@ -92,20 +99,22 @@ class RemoteAgent:
         """
         self.__validate_agent_model(agent_model)
         self._agent_model = agent_model
-        self._discrete = None
-        self._config['obs_size'] = obs_size
-        self._config['action_size'] = action_size
         self._description = description
+        self._discrete = None
+
+        self._config['obs_space'] = dataclasses.asdict(obs_space)
+        self._config['action_space'] = dataclasses.asdict(action_space)
 
         self.logger.debug("Creating an agent (name=%s, model=%s)", self.agent_name, self.agent_model)
-        payload = dict(
+        agent_create = AgentCreate(
             name=self.agent_name,
+            image='agents-bar/agent',
             model=self.agent_model,
             description=self._description,
             config=self._config,
             is_active=active,
         )
-        j_response = agents.create(self._client, config=payload)
+        j_response = agents.create(self._client, agent_create)
         return j_response
 
     def remove(self, *, agent_name: str, quite: bool = True) -> bool:
@@ -182,10 +191,8 @@ class RemoteAgent:
         self._agent_model = agent['model']
         self._config.update(agent['config'])
         # TODO: Remove str key once migrated to obs_space
-        obs_key = "obs_size" if "obs_size" in self._config else "obs_space"
-        action_key = "action_size" if "action_size" in self._config else "action_space"
-        self._obs_size = self._config.get(obs_key)
-        self._action_size = self._config.get(action_key)
+        self._obs_space = self._config.get("obs_space")
+        self._action_space = self._config.get("action_space")
 
     @retry(stop=stop_after_attempt(3), reraise=True)
     def get_state(self) -> EncodedAgentState:
