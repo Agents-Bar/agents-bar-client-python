@@ -5,6 +5,71 @@ import requests
 from requests.models import HTTPError
 
 
+SUPPORTED_ENTITIES = ('agent', 'environment', 'experiment')
+
+
+def wait_until_active(client, entity: str, name: str, max_seconds: int = 20, verbose: bool = True) -> bool:
+    """
+    Waits until the agent is created but no longer than `max_seconds`.
+
+    Parameters:
+        client (Client): Authenticated client.
+        entity (str): Currently only 'agent', 'environment' and 'experiment' are supported.
+        name (str): Name of the entity, e.g. name of the Agent you're trying to check.
+        max_seconds (int): Maximum seconds allowed to wait. Default: 20 (seconds).
+        verbose (bool): Whether to print logs to standard output. Default: True.
+
+    Returns:
+        Boolean value, whether agent exists, i.e. was successfully created.
+    """
+    assert entity in SUPPORTED_ENTITIES, f"Only '{SUPPORTED_ENTITIES}' are supported"
+    start_time = time.time()
+    elapsed_time = 0
+
+    while elapsed_time < max_seconds:
+        response = client.get(f'/{entity}s/{name}')
+        if response.ok and response.json()['is_active']:
+            break
+
+        if verbose and elapsed_time:
+            print(f"Waited {elapsed_time:0.2f} seconds. Waiting some more...")
+        time.sleep(0.5)
+        elapsed_time = time.time() - start_time
+
+    return True
+
+
+def wait_until_exists(client, entity: str, name: str, max_seconds: int = 20, verbose: bool = True) -> bool:
+    """
+    Waits until the agent is created but no longer than `max_seconds`.
+
+    Parameters:
+        client (Client): Authenticated client.
+        entity (str): Currently only 'agent', 'environment' and 'experiment' are supported.
+        name (str): Name of the entity, e.g. name of the Agent you're trying to check.
+        max_seconds (int): Maximum seconds allowed to wait. Default: 20 (seconds).
+        verbose (bool): Whether to print logs to standard output. Default: True.
+
+    Returns:
+        Boolean value, whether agent exists, i.e. was successfully created.
+    """
+    assert entity in SUPPORTED_ENTITIES, f"Only '{SUPPORTED_ENTITIES}' are supported"
+    start_time = time.time()
+    elapsed_time = 0
+
+    while elapsed_time < max_seconds:
+        response = client.get(f'/{entity}s/{name}')
+        if response.ok:
+            break
+
+        if verbose and elapsed_time:
+            print(f"Waited {elapsed_time:0.2f} seconds. Waiting some more...")
+        time.sleep(0.5)
+        elapsed_time = time.time() - start_time
+
+    return True
+
+
 def wait_until_agent_is_active(agent, max_seconds: int = 20, verbose: bool = True) -> bool:
     """
     Waits until the agent is is_active but no longer than `max_seconds`.
@@ -18,18 +83,7 @@ def wait_until_agent_is_active(agent, max_seconds: int = 20, verbose: bool = Tru
         Boolean value, whether agent is_active, i.e. exists and is ready to respond.
     
     """
-    start_time = time.time()
-    elapsed_time = 0
-
-    while not agent.is_active:
-        if verbose and elapsed_time:
-            print(f"Waited {elapsed_time:0.2f} seconds. Waiting some more...")
-        time.sleep(0.5)
-        elapsed_time = time.time() - start_time
-        if elapsed_time > max_seconds:
-            return False
-
-    return True
+    return wait_until_active(agent._client, 'agent', agent.agent_name, max_seconds=max_seconds, verbose=verbose)
 
 
 def wait_until_agent_exists(agent, max_seconds: int = 20, verbose: bool = True) -> bool:
@@ -44,19 +98,7 @@ def wait_until_agent_exists(agent, max_seconds: int = 20, verbose: bool = True) 
     Returns:
         Boolean value, whether agent exists, i.e. was successfully created.
     """
-    start_time = time.time()
-    elapsed_time = 0
-
-    while not agent.exists:
-        if verbose and elapsed_time:
-            print(f"Waited {elapsed_time:0.2f} seconds. Waiting some more...")
-        time.sleep(0.5)
-        elapsed_time = time.time() - start_time
-        if elapsed_time > max_seconds:
-            return False
-
-    return True
-
+    return wait_until_exists(agent._client, 'agent', agent.agent_name, max_seconds=max_seconds, verbose=verbose)
 
 def to_list(x: object) -> List:
     """Convert to a list.
