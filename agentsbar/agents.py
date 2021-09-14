@@ -1,9 +1,9 @@
 from dataclasses import asdict
 from typing import Dict, List, Optional
 
-from agents_bar.client import Client
-from agents_bar.types import AgentCreate
-from agents_bar.utils import response_raise_error_if_any
+from agentsbar.client import Client
+from agentsbar.types import AgentCreate
+from agentsbar.utils import response_raise_error_if_any
 
 AGENTS_PREFIX = "/agents"
 

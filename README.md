@@ -16,8 +16,8 @@ For a minimal (almost) working example check this code snippet:
 
 
 ```python
-from agents_bar import Client, RemoteAgent
-from agents_bar import environments
+from agentsbar import Client, RemoteAgent
+from agentsbar import environments
 
 # Define client to communicate with https://agents.bar. Make sure it's authenticated.
 client = Client()

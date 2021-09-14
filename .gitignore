@@ -2,7 +2,7 @@
 __pycachce__/
 *.pyc
 
-agents_bar.egg-info/
+agentsbar.egg-info/
 build/
 dist/
 

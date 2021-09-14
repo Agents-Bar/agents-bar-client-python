@@ -1,9 +1,9 @@
 from dataclasses import asdict
 from typing import Any, Dict, List
 
-from agents_bar.client import Client
-from agents_bar.types import EnvironmentCreate
-from agents_bar.utils import response_raise_error_if_any
+from agentsbar.client import Client
+from agentsbar.types import EnvironmentCreate
+from agentsbar.utils import response_raise_error_if_any
 
 ENV_PREFIX = "/environments"
 

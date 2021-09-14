@@ -1,9 +1,9 @@
 # Example of how to create an agent and an environment.
 # Once we create these, we then communicate them (locally) so that agent interacts with the environment.
-from agents_bar import Client, agents, environments, experiments
-from agents_bar.types import DataSpace
-from agents_bar.types import AgentCreate, EnvironmentCreate, ExperimentCreate
-from agents_bar.utils import wait_until_active
+from agentsbar import Client, agents, environments, experiments
+from agentsbar.types import DataSpace
+from agentsbar.types import AgentCreate, EnvironmentCreate, ExperimentCreate
+from agentsbar.utils import wait_until_active
 
 
 # Define client to communicate with https://agents.bar. Make sure it's authenticated.
