@@ -1,5 +1,5 @@
 from dataclasses import asdict
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 from agentsbar.client import Client
 from agentsbar.types import ExperimentCreate
@@ -104,3 +104,29 @@ def start(client: Client, exp_name: str, config: Optional[Dict] = None) -> str:
     response = client.post(f"{EXP_PREFIX}/{exp_name}/start", data=config)
     response_raise_error_if_any(response)
     return "Started successfully" if response.ok else "Failed to start"
+
+
+def metrics(
+    client: Client, exp_name: str, metric_names: Optional[List[str]] = None, limit: int = 1,
+    ) -> Dict[str, List[Tuple[int, float]]]:
+    """Gets metrics obtained while running an experiment.
+
+    Parameters:
+        client (Client): Authenticated client.
+        exp_name (str): Name of the experiment.
+        metric_names (Optional list of strings): List of metrics you are intrested in seeing.
+            If None then it'll return all available. Defaults to None.
+        limit (int): Number of last samples to return. Defaults to only the most recent metrics.
+    
+    Returns:
+        Dictionary with keys being metric names and values in a list consisting of an index and value (tuple).
+        For example:
+            {
+                "episode/score": [(10, -10), (9, -7), (8, 3)],
+                "loss/actor": [(10, 1.5), (9, 4.1), (8, 0.99)]
+            }
+    
+    """
+    response = client.post(f"{EXP_PREFIX}/{exp_name}/metrics", data=metric_names, params=dict(limit=limit))
+    response_raise_error_if_any(response)
+    return response.json()

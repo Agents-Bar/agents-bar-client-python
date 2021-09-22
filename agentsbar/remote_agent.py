@@ -60,7 +60,7 @@ class RemoteAgent:
         return self._action_space
 
     @property
-    def agent_model(self):
+    def agent_model(self) -> str:
         if self._agent_model is None:
             self.sync()
         return self._agent_model
@@ -189,7 +189,6 @@ class RemoteAgent:
         agent = self.info()
         self._agent_model = agent['model']
         self._config.update(agent['config'])
-        # TODO: Remove str key once migrated to obs_space
         self._obs_space = self._config.get("obs_space")
         self._action_space = self._config.get("action_space")
 
