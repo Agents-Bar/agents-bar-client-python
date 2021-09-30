@@ -41,7 +41,21 @@ class ExperimentCreate:
     environment_names: List[str]
     config: Dict[str, Any]
     description: Optional[str] = None
-    is_active: Optional[bool] = True
+
+
+@dataclass
+class LeagueConfig:
+    parallel: int
+    experiment_total: int
+
+
+@dataclass
+class LeagueCreate:
+    name: str
+    agent_names: List[str]
+    environment_names: List[str]
+    config: LeagueConfig
+    description: Optional[str] = None
 
 
 @dataclass
